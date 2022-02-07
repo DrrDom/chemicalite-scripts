@@ -45,7 +45,7 @@ def main():
                   ORDER BY t DESC 
                   {'LIMIT ' + str(args.limit) if args.limit is not None else ''}
                """
-        print(sql)
+
         res = con.execute(sql, (args.query, args.threshold)).fetchall()
 
         if args.output is not None:
