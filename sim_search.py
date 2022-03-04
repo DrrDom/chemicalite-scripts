@@ -5,6 +5,22 @@ import sqlite3
 import sys
 
 
+def sql_for_similarity(fp, mol_field, table, limit):
+    sql = f"""SELECT 
+                    main.smi, 
+                    main.id, 
+                    bfp_tanimoto(mol_{fp}_bfp(main.{mol_field}, {'2,' if fp == 'morgan' else ''} 2048), 
+                                 mol_{fp}_bfp(mol_from_smiles(?1), {'2,' if fp == 'morgan' else ''} 2048)) as t 
+                  FROM 
+                    {table} AS main, {table}_{fp}_idx AS idx
+                  WHERE 
+                    main.rowid = idx.id AND
+                    idx.id MATCH rdtree_tanimoto(mol_{fp}_bfp(mol_from_smiles(?1), {'2,' if fp == 'morgan' else ''} 2048), ?2) 
+                  ORDER BY t DESC 
+                  {'LIMIT ' + str(limit) if limit is not None else ''}"""
+    return sql
+
+
 def main():
     parser = argparse.ArgumentParser(description='Similarity search using the selected fingerprints, '
                                                  'which should be previously added to DB.')
@@ -32,19 +48,7 @@ def main():
         con.load_extension('chemicalite')
         con.enable_load_extension(False)
 
-        sql = f"""SELECT 
-                    main.smi, 
-                    main.id, 
-                    bfp_tanimoto(mol_{args.fp}_bfp(main.{args.mol_field}, {'2,' if args.fp == 'morgan' else ''} 2048), 
-                                 mol_{args.fp}_bfp(mol_from_smiles(?1), {'2,' if args.fp == 'morgan' else ''} 2048)) as t 
-                  FROM 
-                    {args.table} AS main, {args.table}_{args.fp}_idx AS idx
-                  WHERE 
-                    main.rowid = idx.id AND
-                    idx.id MATCH rdtree_tanimoto(mol_{args.fp}_bfp(mol_from_smiles(?1), {'2,' if args.fp == 'morgan' else ''} 2048), ?2) 
-                  ORDER BY t DESC 
-                  {'LIMIT ' + str(args.limit) if args.limit is not None else ''}
-               """
+        sql = sql_for_similarity(args.fp, args.mol_field, args.table, args.limit)
 
         res = con.execute(sql, (args.query, args.threshold)).fetchall()
 
