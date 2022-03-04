@@ -50,8 +50,8 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table):
         all_res = []
         for mol_id, smi in smiles:
             res = get_similarity(dest, fp, mol_field, table, smi, limit=1)
-            res = res[0] + (mol_id, smi)
-            all_res.append(res)
+            res = [(smi, mol_id) + i for i in res]
+            all_res.extend(res)
     return all_res
 
 
@@ -85,15 +85,17 @@ def main():
     df_mols = pd.read_csv(args.input_smiles, sep=',')
     smiles = df_mols.smi.to_list()
     mol_ids = df_mols.Name.to_list()
-    chunked = iter(partial(take, args.ncpu, iter(zip(mol_ids, smiles))), [])
+    chunked = iter(partial(take, args.ncpu, zip(mol_ids, smiles)), []) # partial calls take function until output is an empty sheet
+                                                                       # by take function islice extracts n elements from zip
+                                                                       # with saving a condition about zip
     start = perf_counter()
 
     with open(args.output, 'a') as f, ProcessPoolExecutor(max_workers=args.ncpu) as p:
         f.write('\t'.join(['smi', 'mol_id', 'chembl_smi', 'chembl_id', 'similarity']) + '\n')
-        for chembl_smi, chembl_id, sim, mol_id, smi_sql in sum(p.map(
+        for res in sum(p.map(
                 partial(calc_sim_for_smiles, db_name=args.input_db, fp=args.fp, mol_field=args.mol_field, table=args.table),
                 chunked), []):
-            f.write(f'{smi_sql}\t{mol_id}\t{chembl_smi}\t{chembl_id}\t{round(sim, 4)}\n')
+            f.write('\t'.join(map(str, res)) + '\n') # monoid, using sum to concat sheets
 
     print(perf_counter() - start)
 
