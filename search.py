@@ -82,7 +82,7 @@ def main():
     if os.path.isfile(args.output):
         os.remove(args.output)
 
-    df_mols = pd.read_csv(args.input_smiles, sep=',')
+    df_mols = pd.read_csv(args.input_smiles, sep='\t')
     smiles = df_mols.smi.to_list()
     mol_ids = df_mols.Name.to_list()
     chunked = iter(partial(take, args.ncpu, zip(mol_ids, smiles)), []) # partial calls take function until output is an empty sheet
