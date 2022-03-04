@@ -9,6 +9,7 @@ from time import perf_counter
 from multiprocessing import cpu_count
 from functools import partial
 from itertools import islice
+from sim_search import sql_for_similarity
 
 
 def cpu_type(x):
@@ -22,19 +23,7 @@ def take(n, iterable):
 def get_similarity(con, fp, mol_field, table, query, limit=1):
     threshold = 0.7
     while threshold >= 0:
-        sql = f"""SELECT 
-                        main.smi, 
-                        main.id, 
-                        bfp_tanimoto(mol_{fp}_bfp(main.{mol_field}, {'2,' if fp == 'morgan' else ''} 2048), 
-                                     mol_{fp}_bfp(mol_from_smiles(?1), {'2,' if fp == 'morgan' else ''} 2048)) as t 
-                      FROM 
-                        {table} AS main, {table}_{fp}_idx AS idx
-                      WHERE 
-                        main.rowid = idx.id AND
-                        idx.id MATCH rdtree_tanimoto(mol_{fp}_bfp(mol_from_smiles(?1), {'2,' if fp == 'morgan' else ''} 2048), ?2) 
-                      ORDER BY t DESC 
-                      {'LIMIT ' + str(limit) if limit is not None else ''}"""
-
+        sql = sql_for_similarity(fp=fp, mol_field=mol_field, table=table, limit=limit)
         res = con.execute(sql, (query, threshold)).fetchall()
         if res:
             return res
