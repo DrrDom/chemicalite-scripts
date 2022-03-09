@@ -41,7 +41,6 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table):
             res = get_similarity(dest, fp, mol_field, table, smi, limit=1)
             res = [(smi, mol_id) + i for i in res]
             all_res.extend(res)
-    print(all_res)
     return all_res
 
 
@@ -52,8 +51,8 @@ def main():
                         help='input SQLite DB.')
     parser.add_argument('-i', '--input_smiles', metavar='FILENAME', required=True,
                         help='input smiles.')
-    parser.add_argument('-o', '--output', metavar='FILENAME', required=False, default=None,
-                        help='output text file. If omitted output will be printed to STDOUT.')
+    parser.add_argument('-o', '--output', metavar='FILENAME', required=True,
+                        help='output text file.')
     parser.add_argument('-t', '--table', metavar='STRING', default='mols',
                         help='table name where Mol objects are stored. Default: mols.')
     parser.add_argument('-m', '--mol_field', metavar='STRING', default='mol',
