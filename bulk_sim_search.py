@@ -44,7 +44,7 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Similarity search using the selected fingerprints, '
+    parser = argparse.ArgumentParser(description='Bulk similarity search using the selected fingerprints, '
                                                  'which should be previously added to DB.')
     parser.add_argument('-d', '--input_db', metavar='FILENAME', required=True,
                         help='input SQLite DB.')
