@@ -8,5 +8,5 @@
 
 ##### Dependency
 
-`rdkit`  
+`rdkit` - https://www.rdkit.org/  
 `Chemicalite` - SQLite cartridge for RDKit - https://github.com/rvianello/chemicalite
