@@ -34,7 +34,7 @@ def main():
                         help='table name where Mol objects are stored. Default: mols.')
     parser.add_argument('-m', '--mol_field', metavar='STRING', default='mol',
                         help='field name where mol objects are stored. Default: mol.')
-    parser.add_argument('-f', '--fp', metavar='STRING', default='morgan', choices=['morgan', 'pattern'],
+    parser.add_argument('-f', '--fp', metavar='STRING', default='morgan', choices=['morgan', 'pattern', 'atom_pairs'],
                         help='fingerprint type to compute. Default: morgan.')
     parser.add_argument('-p', '--threshold', metavar='NUMERIC', default=0.7, type=float,
                         help='Tanimoto similarity threshold. Default: 0.7.')

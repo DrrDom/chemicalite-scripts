@@ -56,7 +56,7 @@ def main():
                         help='table name where Mol objects are stored. Default: mols.')
     parser.add_argument('-m', '--mol_field', metavar='STRING', default='mol',
                         help='field name where mol objects are stored. Default: mol.')
-    parser.add_argument('-f', '--fp', metavar='STRING', default='morgan', choices=['morgan', 'pattern'],
+    parser.add_argument('-f', '--fp', metavar='STRING', default='morgan', choices=['morgan', 'pattern', 'atom_pairs'],
                         help='fingerprint type to compute. Default: morgan.')
     parser.add_argument('-p', '--threshold', metavar='NUMERIC', default=0.7, type=float,
                         help='Tanimoto similarity threshold. Default: 0.7.')
@@ -67,14 +67,12 @@ def main():
 
     args = parser.parse_args()
 
-
     df_mols = pd.read_csv(args.input_smiles, sep='\t')
     smiles = df_mols.smi.to_list()
     mol_ids = df_mols.Name.to_list()
     chunked = iter(partial(take, args.ncpu, zip(mol_ids, smiles)), []) # partial calls take function until output is an empty sheet
                                                                        # by take function islice extracts n elements from zip
                                                                        # with saving a condition about zip
-    # start = perf_counter()
 
     with open(args.output, 'wt') as f, ProcessPoolExecutor(max_workers=args.ncpu) as p:
         f.write('\t'.join(['smi', 'mol_id', 'chembl_smi', 'chembl_id', 'similarity']) + '\n')
@@ -82,8 +80,6 @@ def main():
                 chunked):
             for items in res:
                 f.write('\t'.join(map(str, items)) + '\n')
-
-    # print(perf_counter() - start)
 
 
 if __name__ == '__main__':
