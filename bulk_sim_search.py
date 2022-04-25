@@ -91,6 +91,7 @@ def main():
                          chunked):
             for items in res:
                 f.write('\t'.join(map(str, items)) + '\n')
+                f.flush()
 
 
 if __name__ == '__main__':
