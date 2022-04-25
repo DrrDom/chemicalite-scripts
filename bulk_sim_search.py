@@ -82,7 +82,7 @@ def main():
                                                                        # with saving a condition about zip
 
     with open(args.output, 'wt') as f, ProcessPoolExecutor(max_workers=args.ncpu) as p:
-        f.write('\t'.join(['smi', 'mol_id', 'chembl_smi', 'chembl_id', 'similarity']) + '\n')
+        f.write('\t'.join(['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity']) + '\n')
         for res in p.map(partial(calc_sim_for_smiles, db_name=args.input_db, fp=args.fp, mol_field=args.mol_field, table=args.table, limit=args.limit),
                 chunked):
             for items in res:
