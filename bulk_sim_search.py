@@ -67,9 +67,16 @@ def main():
 
     args = parser.parse_args()
 
-    df_mols = pd.read_csv(args.input_smiles, sep='\t')
-    smiles = df_mols.smi.to_list()
-    mol_ids = df_mols.Name.to_list()
+    smiles = []
+    mol_ids = []
+    with open(args.input_smiles) as f:
+        for line in f:
+            items = line.strip().split()
+            smiles.append(items[0])
+            if len(items) > 1:
+                mol_ids.append(items[1])
+            else:
+                mol_ids.append(items[0])
     chunked = iter(partial(take, args.ncpu, zip(mol_ids, smiles)), []) # partial calls take function until output is an empty sheet
                                                                        # by take function islice extracts n elements from zip
                                                                        # with saving a condition about zip
