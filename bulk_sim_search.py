@@ -2,10 +2,7 @@
 
 import argparse
 import sqlite3
-import os
-import pandas as pd
-from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import cpu_count
+from multiprocessing import Pool, cpu_count
 from functools import partial
 from itertools import islice
 from sim_search import sql_for_similarity
@@ -67,6 +64,8 @@ def main():
 
     args = parser.parse_args()
 
+    p = Pool(args.ncpu)
+
     smiles = []
     mol_ids = []
     with open(args.input_smiles) as f:
@@ -81,10 +80,15 @@ def main():
                                                                        # by take function islice extracts n elements from zip
                                                                        # with saving a condition about zip
 
-    with open(args.output, 'wt') as f, ProcessPoolExecutor(max_workers=args.ncpu) as p:
+    with open(args.output, 'wt') as f:
         f.write('\t'.join(['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity']) + '\n')
-        for res in p.map(partial(calc_sim_for_smiles, db_name=args.input_db, fp=args.fp, mol_field=args.mol_field, table=args.table, limit=args.limit),
-                chunked):
+        for res in p.map(partial(calc_sim_for_smiles,
+                                 db_name=args.input_db,
+                                 fp=args.fp,
+                                 mol_field=args.mol_field,
+                                 table=args.table,
+                                 limit=args.limit),
+                         chunked):
             for items in res:
                 f.write('\t'.join(map(str, items)) + '\n')
 
