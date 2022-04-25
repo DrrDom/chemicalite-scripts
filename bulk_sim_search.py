@@ -19,7 +19,7 @@ def take(n, iterable):
     return list(islice(iterable, n))
 
 
-def get_similarity(con, fp, mol_field, table, query, limit=1):
+def get_similarity(con, fp, mol_field, table, query, limit):
     threshold = 0.7
     while threshold >= 0:
         sql = sql_for_similarity(fp=fp, mol_field=mol_field, table=table, limit=limit)
@@ -29,7 +29,7 @@ def get_similarity(con, fp, mol_field, table, query, limit=1):
         threshold -= 0.1
 
 
-def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table):
+def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, limit):
     with sqlite3.connect(db_name) as con, sqlite3.connect(':memory:') as dest:
         con.backup(dest)
         dest.enable_load_extension(True)
@@ -37,7 +37,7 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table):
         dest.enable_load_extension(False)
         all_res = []
         for mol_id, smi in smiles:
-            res = get_similarity(dest, fp, mol_field, table, smi, limit=1)
+            res = get_similarity(dest, fp, mol_field, table, smi, limit=limit)
             res = [(smi, mol_id) + i for i in res]
             all_res.extend(res)
     return all_res
@@ -76,7 +76,7 @@ def main():
 
     with open(args.output, 'wt') as f, ProcessPoolExecutor(max_workers=args.ncpu) as p:
         f.write('\t'.join(['smi', 'mol_id', 'chembl_smi', 'chembl_id', 'similarity']) + '\n')
-        for res in p.map(partial(calc_sim_for_smiles, db_name=args.input_db, fp=args.fp, mol_field=args.mol_field, table=args.table),
+        for res in p.map(partial(calc_sim_for_smiles, db_name=args.input_db, fp=args.fp, mol_field=args.mol_field, table=args.table, limit=args.limit),
                 chunked):
             for items in res:
                 f.write('\t'.join(map(str, items)) + '\n')

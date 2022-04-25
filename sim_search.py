@@ -5,7 +5,7 @@ import sqlite3
 import sys
 
 
-def sql_for_similarity(fp, mol_field, table, limit):
+def sql_for_similarity(fp, mol_field, table, limit=None):
     sql = f"""SELECT 
                     main.smi, 
                     main.id, 
