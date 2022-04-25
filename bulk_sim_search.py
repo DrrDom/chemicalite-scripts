@@ -62,7 +62,7 @@ def main():
                         help='Tanimoto similarity threshold. Default: 0.7.')
     parser.add_argument('-l', '--limit', metavar='INTEGER', default=None, type=int,
                         help='maximum number of matches to retrieve. Default: None.')
-    parser.add_argument('-n', '--ncpu', default=1, type=cpu_type,
+    parser.add_argument('-c', '--ncpu', default=1, type=cpu_type,
                         help='number of cpus.')
 
     args = parser.parse_args()
