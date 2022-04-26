@@ -16,8 +16,7 @@ def take(n, iterable):
     return list(islice(iterable, n))
 
 
-def get_similarity(con, fp, mol_field, table, query, limit):
-    threshold = 0.7
+def get_similarity(con, fp, mol_field, table, query, threshold, limit):
     while threshold >= 0:
         sql = sql_for_similarity(fp=fp, mol_field=mol_field, table=table, limit=limit)
         res = con.execute(sql, (query, threshold)).fetchall()
@@ -26,7 +25,7 @@ def get_similarity(con, fp, mol_field, table, query, limit):
         threshold -= 0.1
 
 
-def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, limit):
+def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, threshold, limit):
     with sqlite3.connect(db_name) as con, sqlite3.connect(':memory:') as dest:
         con.backup(dest)
         dest.enable_load_extension(True)
@@ -34,7 +33,7 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, limit):
         dest.enable_load_extension(False)
         all_res = []
         for mol_id, smi in smiles:
-            res = get_similarity(dest, fp, mol_field, table, smi, limit=limit)
+            res = get_similarity(dest, fp, mol_field, table, smi, threshold=threshold, limit=limit)
             res = [(smi, mol_id) + i for i in res]
             all_res.extend(res)
     return all_res
@@ -87,6 +86,7 @@ def main():
                                  fp=args.fp,
                                  mol_field=args.mol_field,
                                  table=args.table,
+                                 threshold=args.threshold,
                                  limit=args.limit),
                          chunked):
             for items in res:
