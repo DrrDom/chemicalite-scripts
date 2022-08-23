@@ -30,8 +30,8 @@ def main():
 
         sql = f"""SELECT {args.table}.smi, {args.table}.id FROM {args.table}, {args.table}_pattern_idx AS idx WHERE
                   {args.table}.rowid = idx.id AND
-                  mol_is_substruct({args.table}.{args.mol_field}, mol_from_smiles(?1)) AND
-                  idx.id MATCH rdtree_subset(mol_pattern_bfp(mol_from_smiles(?1), 2048)) 
+                  mol_is_substruct({args.table}.{args.mol_field}, mol_from_smarts(?1)) AND
+                  idx.id MATCH rdtree_subset(mol_pattern_bfp(mol_from_smarts(?1), 2048)) 
                   {'LIMIT ' + str(args.limit) if args.limit is not None else ''}"""
         res = con.execute(sql, (args.query, )).fetchall()
 
