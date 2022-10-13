@@ -16,16 +16,17 @@ def take(n, iterable):
     return list(islice(iterable, n))
 
 
-def get_similarity(con, fp, mol_field, table, query, threshold, limit):
+def get_similarity(con, fp, mol_field, table, query, threshold, limit, radius_morgan):
     while threshold >= 0:
-        sql = sql_for_similarity(fp=fp, mol_field=mol_field, table=table, limit=limit)
+        sql = sql_for_similarity(fp=fp, mol_field=mol_field, table=table, limit=limit, radius_morgan=radius_morgan)
         res = con.execute(sql, (query, threshold)).fetchall()
-        if res:
+        if len(res) < limit:
+            threshold -= 0.1
+        else:
             return res
-        threshold -= 0.1
 
 
-def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, threshold, limit):
+def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, threshold, limit, radius_morgan):
     with sqlite3.connect(db_name) as con, sqlite3.connect(':memory:') as dest:
         con.backup(dest)
         dest.enable_load_extension(True)
@@ -33,7 +34,7 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, threshold, limit)
         dest.enable_load_extension(False)
         all_res = []
         for mol_id, smi in smiles:
-            res = get_similarity(dest, fp, mol_field, table, smi, threshold=threshold, limit=limit)
+            res = get_similarity(dest, fp, mol_field, table, smi, threshold=threshold, limit=limit, radius_morgan=radius_morgan)
             res = [(smi, mol_id) + i for i in res]
             all_res.extend(res)
     return all_res
@@ -52,12 +53,16 @@ def main():
                         help='table name where Mol objects are stored. Default: mols.')
     parser.add_argument('-m', '--mol_field', metavar='STRING', default='mol',
                         help='field name where mol objects are stored. Default: mol.')
-    parser.add_argument('-f', '--fp', metavar='STRING', default='morgan', choices=['morgan', 'pattern', 'atom_pairs'],
+    parser.add_argument('-f', '--fp', metavar='STRING', default='morgan',
+                        choices=['morgan', 'feat_morgan', 'pattern', 'atom_pairs', 'rdkit', 'topological_torsion'],
                         help='fingerprint type to compute. Default: morgan.')
+    parser.add_argument('-r', '--radius_morgan', metavar='INTEGER', default=2, type=int,
+                        help='radius of Morgan fingerprint. Default: 2.')
     parser.add_argument('-p', '--threshold', metavar='NUMERIC', default=0.7, type=float,
                         help='Tanimoto similarity threshold. Default: 0.7.')
     parser.add_argument('-l', '--limit', metavar='INTEGER', default=None, type=int,
-                        help='maximum number of matches to retrieve. Default: None.')
+                        help='maximum number of matches to retrieve. If specified the threshold will be lowered until '
+                             'the given number of molecules will be found. Default: None.')
     parser.add_argument('-c', '--ncpu', default=1, type=cpu_type,
                         help='number of cpus.')
 
@@ -87,7 +92,8 @@ def main():
                                  mol_field=args.mol_field,
                                  table=args.table,
                                  threshold=args.threshold,
-                                 limit=args.limit),
+                                 limit=args.limit,
+                                 radius_morgan=args.radius_morgan),
                          chunked):
             for items in res:
                 f.write('\t'.join(map(str, items)) + '\n')
@@ -96,7 +102,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
 
