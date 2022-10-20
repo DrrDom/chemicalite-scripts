@@ -37,7 +37,7 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, threshold, limit,
                 res = [(smi, mol_id) + i for i in res]
                 all_res.extend(res)
             df = pd.DataFrame(all_res, columns=['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity'])
-            df = df.sort_values('id', ascending=False).groupby('found_smi').head(1)
+            df = df.sort_values('found_id', ascending=False).groupby('found_smi').head(1)
             if len(df) < limit:
                 threshold -= 0.05
             else:
