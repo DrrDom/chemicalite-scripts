@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import pandas as pd
 import sqlite3
 from multiprocessing import Pool, cpu_count
 from functools import partial
@@ -35,11 +36,12 @@ def calc_sim_for_smiles(smiles, db_name, fp, mol_field, table, threshold, limit,
                 res = get_similarity(dest, fp, mol_field, table, smi, threshold=threshold, limit=limit, radius_morgan=radius_morgan)
                 res = [(smi, mol_id) + i for i in res]
                 all_res.extend(res)
-            if len(all_res) < limit:
-                threshold -= 0.1
+            df = pd.DataFrame(all_res, columns=['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity'])
+            df = df.sort_values('id', ascending=False).groupby('found_smi').head(1)
+            if len(df) < limit:
+                threshold -= 0.05
             else:
-                all_res = sorted(all_res, reverse=True, key=itemgetter(4))[:limit]
-                return all_res
+                return df.head(limit)
         return None
 
 
@@ -86,18 +88,15 @@ def main():
             else:
                 mol_ids.append(items[0])
 
-    with open(args.output, 'wt') as f:
-        f.write('\t'.join(['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity']) + '\n')
-        for item in calc_sim_for_smiles(smiles=list(zip(mol_ids, smiles)),
-                                        db_name=args.input_db,
-                                        fp=args.fp,
-                                        mol_field=args.mol_field,
-                                        table=args.table,
-                                        threshold=args.threshold,
-                                        limit=args.limit,
-                                        radius_morgan=args.radius_morgan):
-            f.write('\t'.join(map(str, item)) + '\n')
-        f.flush()
+    df = calc_sim_for_smiles(smiles=list(zip(mol_ids, smiles)),
+                             db_name=args.input_db,
+                             fp=args.fp,
+                             mol_field=args.mol_field,
+                             table=args.table,
+                             threshold=args.threshold,
+                             limit=args.limit,
+                             radius_morgan=args.radius_morgan)
+    df.to_csv(args.output, sep="\t", index=False)
 
 
 if __name__ == '__main__':
