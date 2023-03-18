@@ -32,7 +32,8 @@ def main():
                   {args.table}.rowid = idx.id AND
                   mol_is_substruct({args.table}.{args.mol_field}, mol_from_smarts(?1)) AND
                   idx.id MATCH rdtree_subset(mol_pattern_bfp(mol_from_smarts(?1), 2048)) 
-                  {'LIMIT ' + str(args.limit) if args.limit is not None else ''}"""
+                  {'LIMIT ' + str(args.limit) if args.limit is not None else ''} 
+                  ORDER BY {args.table}.id"""
         res = con.execute(sql, (args.query, )).fetchall()
 
         if args.output is not None:
