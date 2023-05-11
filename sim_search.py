@@ -3,6 +3,7 @@
 import argparse
 import os
 import sqlite3
+import sys
 
 from add_fp_to_db import compose_index_table_name
 
@@ -64,21 +65,23 @@ def main():
 
         sql = sql_for_similarity(args.fp, args.mol_field, args.table, args.limit, args.radius_morgan)
 
-        with open(args.output, 'wt') as f:
-            f.write('\t'.join(['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity']) + '\n')
-            if os.path.isfile(args.query):
-                for smi, mol_id in read_smi(args.query):
-                    res = con.execute(sql, (smi, args.threshold)).fetchall()
-                    res = [(smi, mol_id) + i for i in res]
-                    if res:
-                        f.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
-                        f.flush()
-            else:
-                res = con.execute(sql, (args.query, args.threshold)).fetchall()
-                res = [(args.query, args.query) + i for i in res]
+        if args.output is not None:
+            sys.stdout = open(args.output, 'wt')
+
+        sys.stdout.write('\t'.join(['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity']) + '\n')
+        if os.path.isfile(args.query):
+            for smi, mol_id in read_smi(args.query):
+                res = con.execute(sql, (smi, args.threshold)).fetchall()
+                res = [(smi, mol_id) + i for i in res]
                 if res:
-                    f.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
-                    f.flush()
+                    sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
+                    sys.stdout.flush()
+        else:
+            res = con.execute(sql, (args.query, args.threshold)).fetchall()
+            res = [(args.query, args.query) + i for i in res]
+            if res:
+                sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
+                sys.stdout.flush()
 
 
 if __name__ == '__main__':
