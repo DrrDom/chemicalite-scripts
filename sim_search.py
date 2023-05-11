@@ -70,13 +70,15 @@ def main():
                 for smi, mol_id in read_smi(args.query):
                     res = con.execute(sql, (smi, args.threshold)).fetchall()
                     res = [(smi, mol_id) + i for i in res]
-                    f.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
-                    f.flush()
+                    if res:
+                        f.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
+                        f.flush()
             else:
                 res = con.execute(sql, (args.query, args.threshold)).fetchall()
                 res = [(args.query, args.query) + i for i in res]
-                f.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
-                f.flush()
+                if res:
+                    f.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
+                    f.flush()
 
 
 if __name__ == '__main__':
