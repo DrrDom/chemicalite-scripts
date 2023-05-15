@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import sqlite3
 import sys
 
@@ -24,6 +25,14 @@ def sql_for_similarity(fp, mol_field, table, limit=None, radius_morgan=2):
     return sql
 
 
+def read_smi(fname):
+    with open(fname) as f:
+        for line in f:
+            items = line.strip().split()
+            mol_id = items[1] if len(items) > 1 else items[0]
+            yield items[0], mol_id
+
+
 def main():
     parser = argparse.ArgumentParser(description='Similarity search using the selected fingerprints, '
                                                  'which should be previously added to DB.')
@@ -31,8 +40,8 @@ def main():
                         help='input SQLite DB.')
     parser.add_argument('-o', '--output', metavar='FILENAME', required=False, default=None,
                         help='output text file. If omitted output will be printed to STDOUT.')
-    parser.add_argument('-q', '--query', metavar='STRING', required=True,
-                        help='reference SMILES.')
+    parser.add_argument('-q', '--query', metavar='STRING or FNAME', required=True,
+                        help='reference SMILES or SMILES file')
     parser.add_argument('-t', '--table', metavar='STRING', default='mols',
                         help='table name where Mol objects are stored. Default: mols.')
     parser.add_argument('-m', '--mol_field', metavar='STRING', default='mol',
@@ -56,12 +65,23 @@ def main():
 
         sql = sql_for_similarity(args.fp, args.mol_field, args.table, args.limit, args.radius_morgan)
 
-        res = con.execute(sql, (args.query, args.threshold)).fetchall()
-
         if args.output is not None:
             sys.stdout = open(args.output, 'wt')
-        for i, smi, sim in res:
-            print(f'{i}\t{smi}\t{round(sim, 4)}')
+
+        sys.stdout.write('\t'.join(['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity']) + '\n')
+        if os.path.isfile(args.query):
+            for smi, mol_id in read_smi(args.query):
+                res = con.execute(sql, (smi, args.threshold)).fetchall()
+                res = [(smi, mol_id) + i for i in res]
+                if res:
+                    sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
+                    sys.stdout.flush()
+        else:
+            res = con.execute(sql, (args.query, args.threshold)).fetchall()
+            res = [(args.query, args.query) + i for i in res]
+            if res:
+                sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
+                sys.stdout.flush()
 
 
 if __name__ == '__main__':
