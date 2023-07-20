@@ -52,8 +52,9 @@ def main():
                         help='fingerprint type to compute. Default: morgan.')
     parser.add_argument('-r', '--radius_morgan', metavar='INTEGER', default=2, type=int,
                         help='radius of Morgan fingerprint. Default: 2.')
-    parser.add_argument('-p', '--threshold', metavar='NUMERIC', default=0.7, type=float,
-                        help='Tanimoto similarity threshold. Default: 0.7.')
+    parser.add_argument('-p', '--threshold', metavar='NUMERIC', default=None, type=float,
+                        help='Tanimoto similarity threshold. If omitted then top similar compounds will be returned. '
+                             'Default: None.')
     parser.add_argument('-l', '--limit', metavar='INTEGER', default=None, type=int,
                         help='maximum number of matches to retrieve. Default: None.')
 
@@ -77,20 +78,42 @@ def main():
         if args.output is not None:
             sys.stdout = open(args.output, 'wt')
 
+        if args.threshold is None:
+            threshold = 0.7
+        else:
+            threshold = args.threshold
+
         sys.stdout.write('\t'.join(['query_smi', 'query_id', 'found_smi', 'found_id', 'similarity']) + '\n')
+
         if os.path.isfile(args.query):
             for smi, mol_id in read_smi(args.query):
-                res = con.execute(sql, (smi, args.threshold)).fetchall()
-                res = [(smi, mol_id) + i for i in res]
+                stop = False
+                while not stop:
+                    res = con.execute(sql, (smi, threshold)).fetchall()
+                    res = [(smi, mol_id) + i for i in res]
+                    if res:
+                        sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
+                        sys.stdout.flush()
+                        stop = True
+                    else:
+                        if args.threshold is None:
+                            threshold -= 0.1
+                        else:
+                            stop = True
+        else:
+            stop = False
+            while not stop:
+                res = con.execute(sql, (args.query, args.threshold)).fetchall()
+                res = [(args.query, args.query) + i for i in res]
                 if res:
                     sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
                     sys.stdout.flush()
-        else:
-            res = con.execute(sql, (args.query, args.threshold)).fetchall()
-            res = [(args.query, args.query) + i for i in res]
-            if res:
-                sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
-                sys.stdout.flush()
+                    stop = True
+                else:
+                    if args.threshold is None:
+                        threshold -= 0.1
+                    else:
+                        stop = True
 
     finally:
         con.close()
