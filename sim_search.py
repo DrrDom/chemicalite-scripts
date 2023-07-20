@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import psutil
 import sqlite3
 import sys
 
@@ -57,8 +58,16 @@ def main():
                         help='maximum number of matches to retrieve. Default: None.')
 
     args = parser.parse_args()
-    with sqlite3.connect(args.input_db) as con:
 
+    con = sqlite3.connect(args.input_db)
+    # copy DB to memory
+    if psutil.virtual_memory().free > os.path.getsize(args.input_db) * 5:
+        dest = sqlite3.connect(':memory:')
+        con.backup(dest)
+        con.close()
+        con = dest
+
+    try:
         con.enable_load_extension(True)
         con.load_extension('chemicalite')
         con.enable_load_extension(False)
@@ -82,6 +91,9 @@ def main():
             if res:
                 sys.stdout.write('\n'.join(['\t'.join(map(str, i)) for i in res]) + '\n')
                 sys.stdout.flush()
+
+    finally:
+        con.close()
 
 
 if __name__ == '__main__':
