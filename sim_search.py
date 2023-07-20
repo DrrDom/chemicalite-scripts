@@ -62,7 +62,7 @@ def main():
 
     con = sqlite3.connect(args.input_db)
     # copy DB to memory
-    if psutil.virtual_memory().free > os.path.getsize(args.input_db) * 5:
+    if psutil.virtual_memory().free > os.path.getsize(args.input_db) * 2:
         dest = sqlite3.connect(':memory:')
         con.backup(dest)
         con.close()
